@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Q&A Cheatsheet - WA Health Meeting | Botaniqal</title>
+  <style>
+    :root {
+      --green: #00633C;
+      --green-dark: #004d2e;
+      --cream: #FFF5E9;
+      --off-white: #FFFAF5;
+      --text: #301C02;
+      --orange: #FF9E2C;
+      --blue: #1a5276;
+      --red: #c0392b;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--off-white);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* Password */
+    #pw-screen {
+      position: fixed; inset: 0;
+      background: var(--green);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999;
+    }
+    .pw-box {
+      background: white; padding: 2.5rem; border-radius: 16px;
+      text-align: center; max-width: 380px; width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .pw-box h2 { color: var(--green); margin-bottom: 0.3rem; font-size: 1.4rem; }
+    .pw-box p { color: #666; margin-bottom: 1.2rem; font-size: 0.85rem; }
+    .pw-box input {
+      width: 100%; padding: 11px 14px; border: 2px solid #ddd;
+      border-radius: 8px; font-size: 1rem; margin-bottom: 0.8rem; outline: none;
+    }
+    .pw-box input:focus { border-color: var(--green); }
+    .pw-box button {
+      width: 100%; padding: 11px; background: var(--green); color: white;
+      border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer;
+    }
+    .pw-box button:hover { background: var(--green-dark); }
+    .pw-err { color: var(--red); font-size: 0.82rem; margin-top: 0.4rem; display: none; }
+
+    #app { display: none; }
+
+    /* Header bar */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--green); color: white;
+      padding: 10px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    }
+    .topbar h1 { font-size: 1rem; font-weight: 600; }
+    .topbar-controls { display: flex; gap: 8px; }
+    .topbar-btn {
+      background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3);
+      padding: 5px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer;
+      font-weight: 500;
+    }
+    .topbar-btn:hover { background: rgba(255,255,255,0.25); }
+    .topbar-btn.active { background: white; color: var(--green); font-weight: 700; }
+
+    /* Category tabs */
+    .cat-bar {
+      background: white; border-bottom: 1px solid #e0e0e0;
+      padding: 8px 20px; display: flex; gap: 6px;
+      overflow-x: auto; position: sticky; top: 42px; z-index: 99;
+    }
+    .cat-tab {
+      padding: 5px 14px; border-radius: 20px; font-size: 0.78rem;
+      border: 1.5px solid var(--green); color: var(--green);
+      background: white; cursor: pointer; white-space: nowrap; font-weight: 500;
+    }
+    .cat-tab:hover { background: var(--cream); }
+    .cat-tab.active { background: var(--green); color: white; }
+    .cat-count {
+      display: inline-block; background: rgba(0,0,0,0.1); border-radius: 10px;
+      padding: 0 6px; font-size: 0.7rem; margin-left: 3px;
+    }
+    .cat-tab.active .cat-count { background: rgba(255,255,255,0.3); }
+
+    /* Main */
+    .main { max-width: 900px; margin: 0 auto; padding: 16px 16px 60px; }
+
+    /* Q&A items */
+    .qa {
+      background: white; border-radius: 10px; margin-bottom: 6px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06); overflow: hidden;
+      border-left: 4px solid var(--green);
+    }
+    .qa.cat-safety { border-left-color: var(--red); }
+    .qa.cat-data { border-left-color: var(--blue); }
+    .qa.cat-tech { border-left-color: var(--orange); }
+    .qa.cat-governance { border-left-color: #8e44ad; }
+    .qa.cat-business { border-left-color: #27ae60; }
+    .qa.cat-clinical { border-left-color: #e74c3c; }
+
+    .qa-head {
+      padding: 12px 16px;
+      display: flex; align-items: center; gap: 10px;
+      cursor: pointer; user-select: none;
+    }
+    .qa-head:hover { background: #fafafa; }
+    .qa-num {
+      flex-shrink: 0; width: 28px; height: 28px;
+      background: var(--green); color: white; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 700;
+    }
+    .qa.cat-safety .qa-num { background: var(--red); }
+    .qa.cat-data .qa-num { background: var(--blue); }
+    .qa.cat-tech .qa-num { background: var(--orange); }
+    .qa.cat-governance .qa-num { background: #8e44ad; }
+    .qa.cat-business .qa-num { background: #27ae60; }
+    .qa.cat-clinical .qa-num { background: #e74c3c; }
+
+    .qa-q { flex: 1; font-weight: 600; font-size: 0.92rem; }
+    .qa-tags { display: flex; gap: 4px; flex-shrink: 0; }
+    .qa-tag {
+      font-size: 0.65rem; padding: 2px 8px; border-radius: 10px;
+      font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .tag-safety { background: #f8d7da; color: #721c24; }
+    .tag-data { background: #d1ecf1; color: #0c5460; }
+    .tag-tech { background: #fff3cd; color: #856404; }
+    .tag-governance { background: #e8daef; color: #6c3483; }
+    .tag-business { background: #d4edda; color: #155724; }
+    .tag-clinical { background: #fadbd8; color: #922b21; }
+
+    .qa-chevron {
+      flex-shrink: 0; font-size: 0.9rem; color: #999;
+      transition: transform 0.2s;
+    }
+    .qa.open .qa-chevron { transform: rotate(180deg); color: var(--green); }
+
+    .qa-body {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .qa.open .qa-body { max-height: 2000px; }
+
+    .qa-answer {
+      padding: 0 16px 16px 54px;
+      font-size: 0.9rem;
+      line-height: 1.7;
+    }
+    .qa-answer p { margin-bottom: 0.6rem; }
+    .qa-answer ul, .qa-answer ol { padding-left: 1.3rem; margin-bottom: 0.6rem; }
+    .qa-answer li { margin-bottom: 0.3rem; }
+    .qa-answer strong { color: var(--green-dark); }
+    .qa-answer .followup {
+      margin-top: 0.8rem; padding: 10px 14px;
+      background: var(--cream); border-radius: 8px;
+      border-left: 3px solid var(--orange);
+      font-size: 0.85rem;
+    }
+    .qa-answer .followup em { font-weight: 600; color: var(--orange); }
+
+    /* Hidden by filter */
+    .qa.hidden { display: none; }
+
+    /* Footer */
+    .foot {
+      text-align: center; padding: 1.5rem; color: #aaa;
+      font-size: 0.8rem; border-top: 1px solid #eee; margin-top: 2rem;
+    }
+
+    @media (max-width: 600px) {
+      .qa-tags { display: none; }
+      .qa-answer { padding-left: 16px; }
+    }
+    @media print {
+      #pw-screen { display: none !important; }
+      #app { display: block !important; }
+      .qa-body { max-height: none !important; }
+      .topbar, .cat-bar { position: static; }
+      .qa { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="pw-screen">
+  <div class="pw-box">
+    <h2>Q&A Cheatsheet</h2>
+    <p>WA Health Meeting - Adam Lloyd - March 2026</p>
+    <input type="password" id="pw-in" placeholder="Enter password" autofocus>
+    <button id="pw-btn">Open</button>
+    <p class="pw-err" id="pw-err">Wrong password.</p>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <h1>WA Health Q&A Cheatsheet</h1>
+    <div class="topbar-controls">
+      <button class="topbar-btn" onclick="expandAll()">Expand All</button>
+      <button class="topbar-btn" onclick="collapseAll()">Collapse All</button>
+      <a href="2026-03-13-wa-health-adam-lloyd-briefing.html" class="topbar-btn" style="text-decoration:none;">Full Briefing</a>
+    </div>
+  </div>
+
+  <div class="cat-bar" id="cat-bar">
+    <button class="cat-tab active" data-cat="all">All <span class="cat-count">16</span></button>
+    <button class="cat-tab" data-cat="data">Data &amp; Sovereignty <span class="cat-count">3</span></button>
+    <button class="cat-tab" data-cat="safety">Safety &amp; Clinical <span class="cat-count">4</span></button>
+    <button class="cat-tab" data-cat="tech">Tech &amp; Integration <span class="cat-count">4</span></button>
+    <button class="cat-tab" data-cat="governance">Governance &amp; Reg <span class="cat-count">3</span></button>
+    <button class="cat-tab" data-cat="business">Business &amp; Scale <span class="cat-count">2</span></button>
+  </div>
+
+  <div class="main" id="qa-list">
+
+    <!-- 1 -->
+    <div class="qa cat-data" data-cats="data">
+      <div class="qa-head" onclick="toggle(this)">
+        <div class="qa-num">1</div>
+        <div class="qa-q">How does Dr. Sophia handle data sovereignty and residency?</div>
+        <div class="qa-tags"><span class="qa-tag tag-data">Data</span></div>
+        <div class="qa-chevron">&#9660;</div>
+      </div>
+      <div class="qa-body"><div class="qa-answer">
+        <p>All infrastructure runs on <strong>AWS ap-southeast-2 (Sydney)</strong>. Patient data never leaves Australian soil. We use <strong>AES-256 encryption at rest</strong> and <strong>TLS 1.3 in transit</strong>. Our EKS cluster runs in a dedicated VPC with private subnets. Database (Supabase) is hosted in Australia with row-level security policies.</p>
+        <div class="followup">
+          <em>If pressed on Anthropic/Claude API:</em> "API calls to Claude go to Anthropic's API, but we send only de-identified clinical context - never raw PII. We're evaluating Anthropic's data residency options and <strong>AWS Bedrock</strong> (which keeps everything in-region) as we scale into government."
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 2 -->
+    <div class="qa cat-governance" data-cats="governance">
+      <div class="qa-head" onclick="toggle(this)">
+        <div class="qa-num">2</div>
+        <div class="qa-q">What's your TGA regulatory position?</div>
+        <div class="qa-tags"><span class="qa-tag tag-governance">Governance</span></div>
+        <div class="qa-chevron">&#9660;</div>
+      </div>
+      <div class="qa-body"><div class="qa-answer">
+        <p><strong>SaMD Class 1 Exempt</strong> under TGA guidelines - lowest risk category. We provide clinical decision support and advisory information, not autonomous diagnosis. A qualified clinician is always in the loop.</p>
+        <div class="followup">
+          <em>If asked about higher classification:</em> "As we move towards more autonomous functions, we have a roadmap to pursue <strong>Class IIa with ARTG listing</strong>. Architecture is built for it - full audit trail, safety validation at 98%+, clinical governance frameworks."
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 3 -->
+    <div class="qa cat-safety" data-cats="safety">
+      <div class="qa-head" onclick="toggle(this)">
+        <div class="qa-num">3</div>
+        <div class="qa-q">How do you ensure AI safety in clinical decisions?</div>
+        <div class="qa-tags"><span class="qa-tag tag-safety">Safety</span></div>
+        <div class="qa-chevron">&#9660;</div>
+      </div>
+      <div class="qa-body"><div class="qa-answer">
+        <p>Multiple layers:</p>
+        <ul>
+          <li><strong>42-Agent Consensus:</strong> Critical decisions go through Byzantine fault-tolerant multi-agent analysis. Multiple AI agents independently assess, consensus required</li>
+          <li><strong>Safety Middleware:</strong> Every AI response passes through content safety validation before reaching clinician/patient</li>
+          <li><strong>GLP-1 Safety Validator:</strong> Dedicated checks for medication recommendations (pregnancy, MTC/MEN2)</li>
+          <li><strong>Crisis Protocol:</strong> Auto-detection of mental health crises with 5 Australian emergency hotlines</li>
+          <li><strong>Clinical Decision Audit:</strong> Every recommendation logged - what went in, what came out, why</li>
+          <li><strong>Human-in-the-loop:</strong> Clinician approval required for all treatment decisions</li>
+        </ul>
+      </div></div>
+    </div>
+
+    <!-- 4 -->
+    <div class="qa cat-data" data-cats="data">
+      <div class="qa-head" onclick="toggle(this)">
+        <div class="qa-num">4</div>
+        <div class="qa-q">What encryption and data protection measures are in place?</div>
+        <div class="qa-tags"><span class="qa-tag tag-data">Data</span></div>
+        <div class="qa-chevron">&#9660;</div>
+      </div>
+      <div class="qa-body"><div class="qa-answer">
+        <ul>
+          <li><strong>At rest:</strong> AES-256. AWS EBS volumes encrypted. Supabase DB encryption</li>
+          <li><strong>In transit:</strong> TLS 1.3. ALB terminates SSL with ACM-managed certificates</li>
+          <li><strong>Application layer:</strong> Custom encryption module - context-aware, different keys per data type</li>
+          <li><strong>Access control:</strong> Row-level security (RLS), RBAC, API key auth</li>
+          <li><strong>Secrets:</strong> AWS Secrets Manager. Zero hardcoded secrets</li>
+          <li><strong>Audit:</strong> All access/modifications logged with timestamps, user identity, action</li>
+        </ul>
+      </div></div>
+    </div>
+
+    <!-- 5 -->
+    <div class="qa cat-tech" data-cats="tech">
+      <div class="qa-head" onclick="toggle(this)">
+        <div class="qa-num">5</div>
+        <div class="qa-q">How does your observability and monitoring work?</div>
+        <div class="qa-tags"><span class="qa-tag tag-tech">Tech</span></div>
+        <div class="qa-chevron">&#9660;</div>
+      </div>
+      <div class="qa-body"><div class="qa-answer">
+        <ul>
+          <li><strong>Metrics:</strong> Prometheus + Thanos (long-term storage, cross-cluster)</li>
+          <li><strong>Logging:</strong> Structured logs aggregated via Loki</li>
+          <li><strong>Dashboards:</strong> Grafana - real-time health, latency, errors, clinical ops</li>
+          <li><strong>Alerting:</strong> Multi-tier: infrastructure → application → clinical</li>
+          <li><strong>Tracing:</strong> Tempo for distributed tracing</li>
+          <li><strong>Clinical:</strong> Consultation quality, SOAP completeness scoring, safety validation rates</li>
+        </ul>
+        <div class="followup">
+          <em>Key stat:</em> "Diagnostic accuracy 87-95%, safety validation 98%+. Measured continuously, not aspirational."
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 6 -->
+    <div class="qa cat-tech" data-cats="tech">
+      <div class="qa-head" onclick="toggle(this)">
+        <div class="qa-num">6</div>
+        <div class="qa-q">How would Dr. Sophia integrate with existing hospital systems?</div>
+        <div class="qa-tags"><span class="qa-tag tag-tech">Tech</span></div>
+        <div class="qa-chevron">&#9660;</div>
+      </div>
+      <div class="qa-body"><div class="qa-answer">
+        <ul>
+          <li><strong>FHIR R4:</strong> Full compliance. Currently integrated with MediRecords via FHIR + REST</li>
+          <li><strong>Bidirectional sync:</strong> Notes, meds, allergies, conditions push to EHR; history pulls from EHR</li>
+          <li><strong>HL7v2:</strong> Architecture supports legacy messaging (common in public hospitals)</li>
+          <li><strong>API-first:</strong> RESTful APIs with comprehensive docs</li>
+          <li><strong>Webhooks:</strong> Event-driven for real-time notifications</li>
+        </ul>
+        <div class="followup">
+          <em>For EMHS:</em> "We'd connect via FHIR to your PAS/EMR. Architecture is EMR-agnostic - built to plug in, not replace."
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 7 -->
+    <div class="qa cat-governance" data-cats="governance">
+      <div class="qa-head" onclick="toggle(this)">
+        <div class="qa-num">7</div>
+        <div class="qa-q">Have you done the DGov AI Self-Assessment?</div>
+        <div class="qa-tags"><span class="qa-tag tag-governance">Governance</span></div>
+        <div class="qa-chevron">&#9660;</div>
+      </div>
+      <div class="qa-body"><div class="qa-answer">
+        <p>Not formally - we've been in private telehealth. But our architecture already covers the core areas:</p>
+        <ul>
+          <li>Transparency/explainability - full audit trail</li>
+          <li>Fairness/bias mitigation - multi-agent consensus reduces single-model bias</li>
+          <li>Privacy/data protection - AES-256, RLS, data minimisation</li>
+          <li>Accountability - clinical decision logging, human-in-the-loop</li>
+          <li>Safety/reliability - safety middleware, crisis protocols, adverse event tracking</li>
+        </ul>
+        <div class="followup">
+          <em>Key line:</em> "Completing the DGov assessment would be one of our first steps entering WA Health. Given our governance posture, we're confident it'd be straightforward."
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 8 -->
+    <div class="qa cat-governance" data-cats="governance">
+      <div class="qa-head" onclick="toggle(this)">
+        <div class="qa-num">8</div>
+        <div class="qa-q">How do you handle model updates and version control for AI?</div>
+        <div class="qa-tags"><span class="qa-tag tag-governance">Governance</span></div>
+        <div class="qa-chevron">&#9660;</div>
+      </div>
+      <div class="qa-body"><div class="qa-answer">
+        <ul>
+          <li><strong>Pinned versions:</strong> Specific Claude model versions in production. No auto-updates</li>
+          <li><strong>Staged rollout:</strong> DEV → E2E validation → PR review → PROD. Never direct to prod</li>
+          <li><strong>Prompt versioning:</strong> Clinical prompts in git with full change history</li>
+          <li><strong>Eval pipeline:</strong> Opik for continuous evaluation against medical benchmarks</li>
+          <li><strong>Rollback:</strong> Full rollback within minutes if degradation detected</li>
+        </ul>
+      </div></div>
+    </div>
+
+    <!-- 9 -->
+    <div class="qa cat-safety" data-cats="safety clinical">
+      <div class="qa-head" onclick="toggle(this)">
+        <div class="qa-num">9</div>
+        <div class="qa-q">What's your approach to clinical validation and evidence?</div>
+        <div class="qa-tags"><span class="qa-tag tag-clinical">Clinical</span></div>
+        <div class="qa-chevron">&#9660;</div>
+      </div>
+      <div class="qa-body"><div class="qa-answer">
+        <ul>
+          <li><strong>Evidence-based:</strong> PubMed research + clinical guidelines + Perplexity AI real-time search</li>
+          <li><strong>SOAP docs:</strong> Automated SOAP notes with rubric-based quality scoring</li>
+          <li><strong>Benchmarked:</strong> Tested against MedQA and medical benchmark datasets</li>
+          <li><strong>Clinical oversight:</strong> Active GPs and NPs review and validate AI recommendations</li>
+          <li><strong>Feedback loop:</strong> Clinician feedback feeds into prompt engineering and safety rules</li>
+        </ul>
+      </div></div>
+    </div>
+
+    <!-- 10 -->
+    <div class="qa cat-safety" data-cats="safety clinical">
+      <div class="qa-head" onclick="toggle(this)">
+        <div class="qa-num">10</div>
+        <div class="qa-q">How does the weight loss / GLP-1 module work?</div>
+        <div class="qa-tags"><span class="qa-tag tag-clinical">Clinical</span></div>
+        <div class="qa-chevron">&#9660;</div>
+      </div>
+      <div class="qa-body"><div class="qa-answer">
+        <p>End-to-end synchronous telehealth:</p>
+        <ol>
+          <li><strong>Eligibility:</strong> BMI + medical contraindication screening (TGA hard stops: MTC/MEN2, pregnancy)</li>
+          <li><strong>AI Pre-consult:</strong> Rose (patient AI) gathers history, meds, allergies</li>
+          <li><strong>Video Consult:</strong> Calendly booking, patient data pre-loaded for doctor</li>
+          <li><strong>Prescriptions:</strong> MediRecords integration, S8 tracking</li>
+          <li><strong>Follow-ups:</strong> Auto Week 4/8/12 milestones with AI pre-chat</li>
+          <li><strong>Safety:</strong> Adverse event tracking, titration safety, quarterly audits</li>
+        </ol>
+        <div class="followup">
+          <em>Why it matters:</em> "This demonstrates a complete regulated workflow. Same patterns - safety gates, oversight, audit trails - apply to any specialty."
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 11 -->
+    <div class="qa cat-tech" data-cats="tech">
+      <div class="qa-head" onclick="toggle(this)">
+        <div class="qa-num">11</div>
+        <div class="qa-q">What's your tech stack?</div>
+        <div class="qa-tags"><span class="qa-tag tag-tech">Tech</span></div>
+        <div class="qa-chevron">&#9660;</div>
+      </div>
+      <div class="qa-body"><div class="qa-answer">
+        <ul>
+          <li><strong>Frontend:</strong> React 18, Vite, Tailwind CSS</li>
+          <li><strong>Backend:</strong> Node.js (Express), Socket.IO real-time</li>
+          <li><strong>AI:</strong> Claude Sonnet 4.5 (primary), Opus 4.6 (complex), Haiku 4.5 (lightweight)</li>
+          <li><strong>Database:</strong> Supabase (PostgreSQL) with RLS</li>
+          <li><strong>Infra:</strong> AWS EKS (K8s 1.32), ECR, ALB, Route53</li>
+          <li><strong>CI/CD:</strong> GitHub Actions (separate DEV/PROD pipelines)</li>
+          <li><strong>Monitoring:</strong> Prometheus, Grafana, Loki, Thanos, Tempo</li>
+          <li><strong>EHR:</strong> MediRecords (FHIR R4 + REST)</li>
+          <li><strong>Scheduling:</strong> Calendly | <strong>Payments:</strong> Stripe | <strong>Wearables:</strong> Terra</li>
+          <li><strong>Voice:</strong> ElevenLabs TTS + Web Speech API STT</li>
+          <li><strong>Region:</strong> ap-southeast-2 (Sydney, Australia)</li>
+        </ul>
+      </div></div>
+    </div>
+
+    <!-- 12 -->
+    <div class="qa cat-safety" data-cats="safety clinical">
+      <div class="qa-head" onclick="toggle(this)">
+        <div class="qa-num">12</div>
+        <div class="qa-q">How do you handle adverse events and safety incidents?</div>
+        <div class="qa-tags"><span class="qa-tag tag-safety">Safety</span></div>
+        <div class="qa-chevron">&#9660;</div>
+      </div>
+      <div class="qa-body"><div class="qa-answer">
+        <ul>
+          <li><strong>Dedicated service:</strong> Adverse Event Service for logging, tracking, escalation</li>
+          <li><strong>Immutable:</strong> Append-only audit log - events cannot be modified once recorded</li>
+          <li><strong>Auto-alerts:</strong> Notifications to clinical team and practice manager</li>
+          <li><strong>Quarterly reports:</strong> Automated adverse event summaries for governance review</li>
+          <li><strong>Crisis protocol:</strong> 5 Australian emergency hotlines (Lifeline, Beyond Blue, etc.)</li>
+          <li><strong>Traceability:</strong> Full path from adverse event back to the AI interaction that contributed</li>
+        </ul>
+      </div></div>
+    </div>
+
+    <!-- 13 -->
+    <div class="qa cat-data" data-cats="data governance">
+      <div class="qa-head" onclick="toggle(this)">
+        <div class="qa-num">13</div>
+        <div class="qa-q">What about patient consent and privacy?</div>
+        <div class="qa-tags"><span class="qa-tag tag-data">Data</span><span class="qa-tag tag-governance">Governance</span></div>
+        <div class="qa-chevron">&#9660;</div>
+      </div>
+      <div class="qa-body"><div class="qa-answer">
+        <ul>
+          <li><strong>Digital consent:</strong> Canvas-based digital signature with PDF generation</li>
+          <li><strong>Granular:</strong> Patients consent to specific uses (AI, EHR sharing, wearable data)</li>
+          <li><strong>APPs compliance:</strong> Australian Privacy Principles built into data handling</li>
+          <li><strong>Data minimisation:</strong> Only collect what's clinically necessary</li>
+          <li><strong>Right to deletion:</strong> Available (with clinical retention exceptions)</li>
+          <li><strong>Guest mode:</strong> Session-only storage, no persistence</li>
+        </ul>
+      </div></div>
+    </div>
+
+    <!-- 14 -->
+    <div class="qa cat-business" data-cats="business tech">
+      <div class="qa-head" onclick="toggle(this)">
+        <div class="qa-num">14</div>
+        <div class="qa-q">Can it handle public health volumes? How does it scale?</div>
+        <div class="qa-tags"><span class="qa-tag tag-business">Business</span><span class="qa-tag tag-tech">Tech</span></div>
+        <div class="qa-chevron">&#9660;</div>
+      </div>
+      <div class="qa-body"><div class="qa-answer">
+        <ul>
+          <li><strong>EKS auto-scaling:</strong> Horizontal pod scaling within minutes on demand</li>
+          <li><strong>Karpenter:</strong> Node-level auto-scaling for cost efficiency</li>
+          <li><strong>Performance:</strong> Sub-5s response times for simple queries</li>
+          <li><strong>Cost:</strong> ~$172/month current infra. Scales linearly</li>
+          <li><strong>Multi-tenant:</strong> Shared infra with isolated data per tenant</li>
+        </ul>
+        <div class="followup">
+          <em>For EMHS (790k+ people):</em> "Cloud-native, designed to scale. Cost driven by AI API calls, proportional to volume. We'd right-size with your team."
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 15 -->
+    <div class="qa cat-business" data-cats="business">
+      <div class="qa-head" onclick="toggle(this)">
+        <div class="qa-num">15</div>
+        <div class="qa-q">What's your business model? How would a government partnership work?</div>
+        <div class="qa-tags"><span class="qa-tag tag-business">Business</span></div>
+        <div class="qa-chevron">&#9660;</div>
+      </div>
+      <div class="qa-body"><div class="qa-answer">
+        <ul>
+          <li><strong>Current:</strong> Patient-pays telehealth (Stripe)</li>
+          <li><strong>Government options:</strong> SaaS per clinician/facility, per-consultation with volume discounts, or enterprise agreement with SLAs</li>
+          <li><strong>Procurement:</strong> GovNext-ICT panel or direct EMHS engagement</li>
+        </ul>
+        <div class="followup">
+          <em>Key line:</em> "We'd suggest a focused pilot - one specialty or one facility - to demonstrate value before broader rollout."
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 16 -->
+    <div class="qa cat-tech" data-cats="tech">
+      <div class="qa-head" onclick="toggle(this)">
+        <div class="qa-num">16</div>
+        <div class="qa-q">What about accessibility? WCAG compliance?</div>
+        <div class="qa-tags"><span class="qa-tag tag-tech">Tech</span></div>
+        <div class="qa-chevron">&#9660;</div>
+      </div>
+      <div class="qa-body"><div class="qa-answer">
+        <p>Targeting <strong>WCAG 2.1 AA</strong>:</p>
+        <ul>
+          <li>Comprehensive ARIA roles, labels, and live regions</li>
+          <li>Keyboard navigation without traps</li>
+          <li>Screen reader support with aria-describedby hints</li>
+          <li>4.5:1 colour contrast ratios</li>
+          <li>Voice: ElevenLabs TTS + STT for patients who prefer voice</li>
+          <li>Progressive disclosure for complex medical forms</li>
+        </ul>
+        <div class="followup">
+          <em>Key line:</em> "Especially important for public health - diverse populations including elderly and those with disabilities."
+        </div>
+      </div></div>
+    </div>
+
+  </div><!-- /main -->
+
+  <div class="foot">
+    Botaniqal - Confidential Q&A Cheatsheet | March 13, 2026 | Password: ask Willie
+  </div>
+</div><!-- /app -->
+
+<script>
+(function() {
+  var pwIn = document.getElementById('pw-in');
+  var pwBtn = document.getElementById('pw-btn');
+  var pwErr = document.getElementById('pw-err');
+  var pwScreen = document.getElementById('pw-screen');
+  var app = document.getElementById('app');
+
+  function check() {
+    if (pwIn.value === 'botaniqal2026') {
+      pwScreen.style.display = 'none';
+      app.style.display = 'block';
+      try { sessionStorage.setItem('qa-auth', '1'); } catch(e) {}
+    } else {
+      pwErr.style.display = 'block';
+      pwIn.value = '';
+      pwIn.focus();
+    }
+  }
+  try { if (sessionStorage.getItem('qa-auth') === '1') { pwScreen.style.display = 'none'; app.style.display = 'block'; } } catch(e) {}
+  pwBtn.addEventListener('click', check);
+  pwIn.addEventListener('keydown', function(e) { if (e.key === 'Enter') check(); });
+})();
+
+function toggle(el) {
+  el.parentElement.classList.toggle('open');
+}
+
+function expandAll() {
+  document.querySelectorAll('.qa:not(.hidden)').forEach(function(q) { q.classList.add('open'); });
+}
+
+function collapseAll() {
+  document.querySelectorAll('.qa').forEach(function(q) { q.classList.remove('open'); });
+}
+
+// Category filtering
+document.getElementById('cat-bar').addEventListener('click', function(e) {
+  var tab = e.target.closest('.cat-tab');
+  if (!tab) return;
+  var cat = tab.dataset.cat;
+
+  document.querySelectorAll('.cat-tab').forEach(function(t) { t.classList.remove('active'); });
+  tab.classList.add('active');
+
+  document.querySelectorAll('.qa').forEach(function(q) {
+    if (cat === 'all') {
+      q.classList.remove('hidden');
+    } else {
+      var cats = q.dataset.cats || '';
+      if (cats.indexOf(cat) !== -1) {
+        q.classList.remove('hidden');
+      } else {
+        q.classList.add('hidden');
+      }
+    }
+  });
+});
+</script>
+
+</body>
+</html>
