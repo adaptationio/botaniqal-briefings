@@ -210,12 +210,12 @@
   </div>
 
   <div class="cat-bar" id="cat-bar">
-    <button class="cat-tab active" data-cat="all">All <span class="cat-count">16</span></button>
+    <button class="cat-tab active" data-cat="all">All <span class="cat-count">20</span></button>
     <button class="cat-tab" data-cat="data">Data &amp; Sovereignty <span class="cat-count">3</span></button>
     <button class="cat-tab" data-cat="safety">Safety &amp; Clinical <span class="cat-count">4</span></button>
     <button class="cat-tab" data-cat="tech">Tech &amp; Integration <span class="cat-count">4</span></button>
     <button class="cat-tab" data-cat="governance">Governance &amp; Reg <span class="cat-count">3</span></button>
-    <button class="cat-tab" data-cat="business">Business &amp; Scale <span class="cat-count">2</span></button>
+    <button class="cat-tab" data-cat="business">Affordability &amp; Value <span class="cat-count">6</span></button>
   </div>
 
   <div class="main" id="qa-list">
@@ -554,10 +554,97 @@
       </div></div>
     </div>
 
+    <!-- 17 -->
+    <div class="qa cat-business" data-cats="business">
+      <div class="qa-head" onclick="toggle(this)">
+        <div class="qa-num">17</div>
+        <div class="qa-q">What does it actually cost? Can a public health system afford this?</div>
+        <div class="qa-tags"><span class="qa-tag tag-business">Business</span></div>
+        <div class="qa-chevron">&#9660;</div>
+      </div>
+      <div class="qa-body"><div class="qa-answer">
+        <p><strong>Current infrastructure cost: ~$172/month</strong> for the entire platform (EKS cluster, databases, monitoring, CI/CD). That's less than one day of a junior doctor's salary.</p>
+        <ul>
+          <li><strong>Per-consultation AI cost:</strong> ~$0.02-$0.14 depending on complexity (simple query vs full 6-team analysis)</li>
+          <li><strong>Model costs:</strong> Sonnet 4.5 at $0.024/consult (primary), Haiku 4.5 at $0.001 (background tasks), Opus 4.6 only for highest-complexity cases</li>
+          <li><strong>Scales linearly:</strong> 10x patients doesn't mean 10x infra - Kubernetes auto-scales pods/nodes on demand, costs grow with actual usage</li>
+          <li><strong>No hardware:</strong> Cloud-native, no on-premises servers, no capital expenditure</li>
+        </ul>
+        <div class="followup">
+          <em>Key line:</em> "We're an operational expense, not a capital one. A 6-month pilot for one department would cost less than a single full-time clinician hire."
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 18 -->
+    <div class="qa cat-business" data-cats="business">
+      <div class="qa-head" onclick="toggle(this)">
+        <div class="qa-num">18</div>
+        <div class="qa-q">What's the ROI? How do you measure value for a public health system?</div>
+        <div class="qa-tags"><span class="qa-tag tag-business">Business</span></div>
+        <div class="qa-chevron">&#9660;</div>
+      </div>
+      <div class="qa-body"><div class="qa-answer">
+        <p>Three value levers for public health:</p>
+        <ol>
+          <li><strong>Clinician time savings:</strong> AI pre-consultation gathers history, meds, allergies before the doctor sees the patient. Saves 10-15 minutes per consultation. At EMHS volumes, that's thousands of clinician hours per year</li>
+          <li><strong>Reduced adverse events:</strong> 5-gate safety architecture catches drug interactions, contraindications, and dosing errors before they reach the patient. Each prevented adverse event saves $10,000-$50,000+ in downstream care</li>
+          <li><strong>Reduced readmissions:</strong> Structured follow-up protocols (Week 4/8/12 milestones) with AI monitoring reduce drop-off and catch deterioration early. HIVE proved remote monitoring works - Dr. Sophia extends that to outpatient care</li>
+        </ol>
+        <div class="followup">
+          <em>For Adam:</em> "HIVE saves 60,000 bed hours through inpatient remote monitoring. Dr. Sophia could deliver similar savings on the outpatient side - AI triaging, pre-consultation data gathering, and structured follow-ups that reduce unnecessary ED presentations."
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 19 -->
+    <div class="qa cat-business" data-cats="business">
+      <div class="qa-head" onclick="toggle(this)">
+        <div class="qa-num">19</div>
+        <div class="qa-q">How does pricing compare to other clinical AI platforms?</div>
+        <div class="qa-tags"><span class="qa-tag tag-business">Business</span></div>
+        <div class="qa-chevron">&#9660;</div>
+      </div>
+      <div class="qa-body"><div class="qa-answer">
+        <ul>
+          <li><strong>Enterprise CDSS platforms</strong> (IBM Watson Health, Nuance DAX): $50,000-$500,000+/year per facility with long implementation cycles</li>
+          <li><strong>US digital health SaaS</strong> (Abridge, Ambience): $500-$1,500/clinician/month, typically US-only, no AU data sovereignty</li>
+          <li><strong>Botaniqal:</strong> Flexible pricing from $50-$200/clinician/month for government partnerships, with data staying on Australian soil</li>
+          <li><strong>Key differentiator:</strong> We're Australian-built, Australian-hosted, Australian-regulated. No offshore data processing agreements needed for core clinical data</li>
+        </ul>
+        <div class="followup">
+          <em>Key line:</em> "Most clinical AI is built for the US market, priced in USD, and stores data overseas. We're purpose-built for Australian healthcare - TGA, AHPRA, PBS, RACGP, Medicare. That's not a feature, it's the foundation."
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 20 -->
+    <div class="qa cat-business" data-cats="business">
+      <div class="qa-head" onclick="toggle(this)">
+        <div class="qa-num">20</div>
+        <div class="qa-q">What would a pilot look like? What's the minimum commitment?</div>
+        <div class="qa-tags"><span class="qa-tag tag-business">Business</span></div>
+        <div class="qa-chevron">&#9660;</div>
+      </div>
+      <div class="qa-body"><div class="qa-answer">
+        <ul>
+          <li><strong>Duration:</strong> 3-6 month pilot in one department or specialty</li>
+          <li><strong>Scope:</strong> 5-20 clinicians, one clinical pathway (e.g. chronic disease management, post-surgical follow-up, or outpatient pre-consultation triage)</li>
+          <li><strong>Integration:</strong> Connect to existing EMR via FHIR R4 (standard in most hospital systems). 2-4 week setup</li>
+          <li><strong>Cost:</strong> Pilot pricing - significantly below commercial rates to prove value. We win when you see ROI</li>
+          <li><strong>Metrics:</strong> Agreed KPIs upfront - clinician time saved, patient satisfaction, adverse event reduction, documentation completeness</li>
+          <li><strong>Exit:</strong> No lock-in. Data export at any time. Your data, your patients, your choice</li>
+        </ul>
+        <div class="followup">
+          <em>Key line:</em> "Start small, measure everything, scale what works. That's how HIVE started at Royal Perth - and now it serves two hospitals. We'd follow the same playbook."
+        </div>
+      </div></div>
+    </div>
+
   </div><!-- /main -->
 
   <div class="foot">
-    Botaniqal - Confidential Q&A Cheatsheet | March 13, 2026 | Password: ask Willie
+    Botaniqal - Confidential Q&A Cheatsheet | March 2026 | Password: ask Willie
   </div>
 </div><!-- /app -->
 
