@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Technical Deep Dive - Safety, Privacy &amp; Observability | Botaniqal</title>
+<style>
+:root {
+  --bg: #0a0f1a;
+  --card: #111827;
+  --card-border: #1e293b;
+  --accent: #10b981;
+  --accent2: #6366f1;
+  --accent3: #f59e0b;
+  --danger: #ef4444;
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  --glow: rgba(16,185,129,0.15);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+.lock-screen { display:flex; align-items:center; justify-content:center; min-height:100vh; background: linear-gradient(135deg, #0a0f1a 0%, #1a1f2e 50%, #0a0f1a 100%); }
+.lock-box { background: var(--card); border: 1px solid var(--card-border); border-radius: 16px; padding: 48px; max-width: 420px; width: 90%; text-align: center; box-shadow: 0 0 60px rgba(16,185,129,0.08); }
+.logo-text { font-size: 28px; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.logo-sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; letter-spacing: 2px; text-transform: uppercase; }
+.lock-box input { width: 100%; padding: 14px 18px; border: 1px solid var(--card-border); border-radius: 10px; background: var(--bg); color: var(--text); font-size: 16px; margin: 20px 0 16px; outline: none; }
+.lock-box input:focus { border-color: var(--accent); }
+.lock-box button { width: 100%; padding: 14px; border: none; border-radius: 10px; background: linear-gradient(135deg, var(--accent), #059669); color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; }
+.lock-box button:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(16,185,129,0.3); }
+.lock-error { color: var(--danger); font-size: 14px; margin-top: 8px; display: none; }
+
+.dashboard { display: none; max-width: 1200px; margin: 0 auto; padding: 24px 20px 80px; }
+header { text-align: center; padding: 40px 0 32px; border-bottom: 1px solid var(--card-border); margin-bottom: 32px; }
+header h1 { font-size: 28px; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+header p { color: var(--text-muted); font-size: 15px; }
+
+.nav-pills { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 32px; }
+.nav-pill { padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; border: 1px solid var(--card-border); color: var(--text-muted); cursor: pointer; text-decoration: none; transition: all 0.2s; }
+.nav-pill:hover, .nav-pill.active { background: rgba(16,185,129,0.15); color: var(--accent); border-color: var(--accent); }
+
+.section-title { font-size: 22px; font-weight: 700; margin: 40px 0 20px; padding-bottom: 12px; border-bottom: 1px solid var(--card-border); display: flex; align-items: center; gap: 12px; }
+.section-title .icon { font-size: 24px; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; margin-bottom: 32px; }
+.card { background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; padding: 24px; transition: border-color 0.2s, box-shadow 0.2s; }
+.card:hover { border-color: rgba(16,185,129,0.3); box-shadow: 0 0 30px var(--glow); }
+.card h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+.card h3 .icon { font-size: 20px; }
+.card.full { grid-column: 1 / -1; }
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+table th { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+table td { padding: 10px 12px; border-bottom: 1px solid rgba(30,41,59,0.5); }
+table tr:last-child td { border-bottom: none; }
+table tr:hover td { background: rgba(255,255,255,0.02); }
+
+.badge { display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+.badge-pass { background: rgba(16,185,129,0.15); color: #34d399; }
+.badge-warn { background: rgba(245,158,11,0.15); color: #fbbf24; }
+.badge-info { background: rgba(99,102,241,0.15); color: #818cf8; }
+
+.flow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 16px; background: rgba(255,255,255,0.02); border-radius: 10px; margin: 12px 0; }
+.flow-node { padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; white-space: nowrap; }
+.flow-node.green { background: rgba(16,185,129,0.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.25); }
+.flow-node.blue { background: rgba(99,102,241,0.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.25); }
+.flow-node.amber { background: rgba(245,158,11,0.15); color: #fcd34d; border: 1px solid rgba(245,158,11,0.25); }
+.flow-node.red { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
+.flow-arrow { color: var(--text-dim); font-size: 18px; }
+
+.code-block { background: rgba(0,0,0,0.3); border: 1px solid var(--card-border); border-radius: 8px; padding: 16px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 13px; overflow-x: auto; margin: 12px 0; color: #a5b4fc; }
+.code-block .comment { color: var(--text-dim); }
+.code-block .keyword { color: #c084fc; }
+.code-block .string { color: #34d399; }
+.code-block .func { color: #fbbf24; }
+
+.safety-gate { display: flex; align-items: flex-start; gap: 16px; padding: 16px; background: rgba(255,255,255,0.02); border-radius: 10px; margin-bottom: 10px; border-left: 3px solid var(--accent); }
+.safety-gate .gate-num { font-size: 24px; font-weight: 800; color: var(--accent); min-width: 36px; }
+.safety-gate h4 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.safety-gate p { font-size: 13px; color: var(--text-muted); }
+
+.highlight-box { background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(99,102,241,0.08)); border: 1px solid rgba(16,185,129,0.2); border-radius: 12px; padding: 20px 24px; margin: 16px 0; font-size: 14px; }
+.highlight-box strong { color: var(--accent); }
+
+.footer { text-align: center; padding: 40px 0 20px; color: var(--text-dim); font-size: 13px; border-top: 1px solid var(--card-border); margin-top: 40px; }
+
+@media (max-width: 768px) {
+  .grid { grid-template-columns: 1fr; }
+  header h1 { font-size: 22px; }
+  .nav-pills { gap: 4px; }
+  .nav-pill { font-size: 11px; padding: 6px 10px; }
+}
+@media print {
+  .lock-screen { display: none !important; }
+  .dashboard { display: block !important; }
+  body { background: #fff; color: #111; }
+  .card { border: 1px solid #ddd; box-shadow: none; background: #f8f8f8; }
+}
+</style>
+</head>
+<body>
+
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-box">
+    <div class="logo-text">Botaniqal</div>
+    <div class="logo-sub">Technical Deep Dive</div>
+    <p style="color: var(--text-muted); font-size: 14px; margin-top: 16px;">Safety, Privacy &amp; Observability</p>
+    <input type="password" id="passInput" placeholder="Enter access code" onkeydown="if(event.key==='Enter')checkPass()">
+    <button onclick="checkPass()">Unlock</button>
+    <div class="lock-error" id="passError">Incorrect access code</div>
+  </div>
+</div>
+
+<div class="dashboard" id="dashboard">
+<header>
+  <h1>Technical Deep Dive</h1>
+  <p>Safety Middleware &bull; Data Anonymisation &bull; Audit Hashing &bull; Observability</p>
+  <p style="margin-top: 8px;">Prepared for WA Health &mdash; March 2026</p>
+</header>
+
+<div class="nav-pills">
+  <a href="#safety" class="nav-pill active">Safety Middleware</a>
+  <a href="#anonymisation" class="nav-pill">Data Anonymisation</a>
+  <a href="#audit" class="nav-pill">Audit &amp; Hashing</a>
+  <a href="#observability" class="nav-pill">Observability Stack</a>
+  <a href="#libraries" class="nav-pill">Libraries &amp; Tools</a>
+  <a href="qa.html" class="nav-pill" style="border-color: var(--accent3); color: var(--accent3);">Q&amp;A Cheatsheet</a>
+  <a href="compliance.html" class="nav-pill" style="border-color: var(--accent3); color: var(--accent3);">Compliance Dashboard</a>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- SAFETY MIDDLEWARE -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="safety" class="section-title"><span class="icon">&#x1f6e1;</span> Safety Middleware — 5 Gates, 3 Tiers, 2 Layers</div>
+
+<div class="highlight-box">
+  Every AI response passes through <strong>5 independent safety gates</strong> before reaching a clinician or patient. Any single gate can block. The system defaults to the <strong>most restrictive safe state</strong> on any error — conservative by design.
+</div>
+
+<div class="grid">
+  <div class="card full">
+    <h3><span class="icon">&#x1f4a1;</span> Safety Pipeline Flow</h3>
+    <div class="flow">
+      <span class="flow-node green">Patient Input</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node blue">Gate 1: EligibilityEngine</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node blue">Gate 2: SafetyValidator (3-Tier)</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node blue">Gate 3: ContentSafetyValidator (2-Layer)</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node blue">Gate 4: OutputFilteringService</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node amber">Gate 5: 7-Agent Byzantine Consensus</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node green">Safe Output to Clinician</span>
+    </div>
+  </div>
+</div>
+
+<div class="safety-gate">
+  <div class="gate-num">1</div>
+  <div>
+    <h4>EligibilityEngine — Pre-Consultation Hard Stops</h4>
+    <p><strong>File:</strong> <code>backend/src/services/weight-loss/EligibilityEngine.js</code><br>
+    Hard stops for: MTC/MEN2 history, SCOFF eating disorder screen (&ge;2 = blocked), PHQ-9 Q9 suicidal ideation (triggers crisis protocol with Lifeline, 000, Beyond Blue, Kids Helpline, MensLine), BMI thresholds with ethnicity adjustment (Asian/South Asian/Middle Eastern/Aboriginal &amp; Torres Strait Islander), age 18&ndash;75, Australian state S4 regulations. <strong>Runs before any AI interaction.</strong></p>
+  </div>
+</div>
+
+<div class="safety-gate">
+  <div class="gate-num">2</div>
+  <div>
+    <h4>SafetyValidator — 3-Tier Hybrid Drug Safety (9 Parallel Checks)</h4>
+    <p><strong>File:</strong> <code>backend/src/middleware/SafetyValidator.js</code><br>
+    <strong>Tier 1 (Deterministic, &lt;50ms, FREE):</strong> Queries 3,778 Supabase safety records across 8 tables &mdash; drug interactions (501), contraindications (773), TGA pregnancy categories (1,699), dosing guidelines (755), allergy cross-reactions (50), food interactions (225), supplement interactions (150), QT prolongation risk. Uses <code>node-cache</code> (15-min TTL) for sub-millisecond repeat lookups.<br>
+    <strong>Tier 2 (AI, ~2s, $0.0016):</strong> Claude Haiku 4.5 handles novel drugs, complex multi-drug scenarios, and edge cases not in the deterministic database. Structured JSON output with confidence scores (85&ndash;92%).<br>
+    <strong>Tier 3 (Conservative, &lt;10ms, FREE):</strong> If Tiers 1 and 2 both fail, returns: <em>"Insufficient safety data &mdash; consult specialist before prescribing."</em> Never passes through an unchecked prescription.</p>
+  </div>
+</div>
+
+<div class="safety-gate">
+  <div class="gate-num">3</div>
+  <div>
+    <h4>ContentSafetyValidator — Dual-Layer Real-Time AI Response Validation</h4>
+    <p><strong>File:</strong> <code>backend/src/middleware/ContentSafetyValidator.js</code><br>
+    <strong>Layer 1 (Real-time streaming, &lt;100ms overhead):</strong> Scans every 50 tokens during Claude streaming for: red flag symptoms without emergency referral, contraindicated medication mentions, missed urgent symptoms. Runs in parallel with AI generation &mdash; doesn't slow down response time.<br>
+    <strong>Layer 2 (Post-stream deep validation, 2&ndash;5s, async):</strong> After AI response completes, Haiku 4.5 performs 5-dimension deep validation: medication safety, diagnosis completeness, urgency appropriateness, differential completeness, referral appropriateness. If critical issues found, Haiku generates a corrected replacement response.<br>
+    <strong>Both layers use 3-tier architecture</strong> (deterministic &rarr; Haiku AI &rarr; conservative fallback).</p>
+  </div>
+</div>
+
+<div class="safety-gate">
+  <div class="gate-num">4</div>
+  <div>
+    <h4>OutputFilteringService — AHPRA/TGA Language Compliance</h4>
+    <p><strong>File:</strong> <code>backend/src/services/weight-loss/OutputFilteringService.js</code><br>
+    Regex-based blocking of <strong>4 categories of forbidden language</strong>:<br>
+    &bull; <strong>Diagnostic claims:</strong> "I diagnose you with", "your diagnosis is", "my diagnosis is"<br>
+    &bull; <strong>Definitive claims:</strong> "you have diabetes", "you definitely have", "there is no doubt"<br>
+    &bull; <strong>Prescription claims:</strong> "I am prescribing", "here is your prescription", "take this medication"<br>
+    &bull; <strong>Treatment decisions:</strong> "you must start treatment", "begin taking this medication"<br>
+    Each blocked phrase is replaced with clinician-deferral alternatives (e.g. "A doctor will assess" or "Your healthcare provider will determine").</p>
+  </div>
+</div>
+
+<div class="safety-gate" style="border-left-color: var(--accent2);">
+  <div class="gate-num" style="color: var(--accent2);">5</div>
+  <div>
+    <h4>7-Agent Byzantine Consensus — Multi-Provider Prescription Validation</h4>
+    <p><strong>File:</strong> <code>backend/src/services/42-agent-prompts-v2.js</code>, <code>backend/src/services/safetyTeamValidator.js</code><br>
+    7 specialised AI agents from <strong>4 different providers</strong> must reach consensus before any prescription is approved. Temperature locked at 0.2 &mdash; "safety cannot be creative."<br>
+    <strong>Agents:</strong> Drug Interaction Validator, Allergy Checker, Contraindication Enforcer, Dose Validator, Pregnancy/Breastfeeding Safety Officer, TGA Compliance Auditor, Safety Consensus Lead.<br>
+    <strong>Providers:</strong> Claude Opus 4.6 (Anthropic), Gemini 3 Flash (Google), GPT-5.2 (OpenAI), Perplexity Sonar Pro.<br>
+    <strong>ANY 1 agent can VETO.</strong> Single-model bias is eliminated through provider diversity.</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- DATA ANONYMISATION -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="anonymisation" class="section-title"><span class="icon">&#x1f464;</span> Data Anonymisation — 5-Layer PHI Protection Stack</div>
+
+<div class="highlight-box">
+  Patient data is protected by <strong>5 independent anonymisation layers</strong>, each using different technology. Even if one layer fails, the others catch it. The stack includes <strong>Microsoft Presidio</strong> (open-source NLP-based PII detection), custom regex sanitisers, and OTEL-level scrubbing.
+</div>
+
+<div class="grid">
+  <div class="card full">
+    <h3><span class="icon">&#x1f4a1;</span> Anonymisation Pipeline</h3>
+    <div class="flow">
+      <span class="flow-node green">Raw Patient Data</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node blue">Layer 1: Claude AI Anonymizer</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node blue">Layer 2: Microsoft Presidio</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node blue">Layer 3: Audit Logger PII Masking</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node blue">Layer 4: OTEL Span Sanitizer</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node blue">Layer 5: Encryption Log Sanitizer</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node green">PHI-Free Output</span>
+    </div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h3><span class="icon">1&#xFE0F;&#x20E3;</span> Layer 1: Claude AI Anonymizer</h3>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;"><strong>File:</strong> <code>backend/src/utils/claude-ai-anonymizer.js</code></p>
+    <table>
+      <tr><td style="color: var(--danger);">Strips</td><td>Name, email, phone, specific address</td></tr>
+      <tr><td style="color: var(--accent);">Preserves</td><td>ALL medical context: symptoms, history, meds, allergies, vitals, age, gender</td></tr>
+      <tr><td>Method</td><td>Structural de-identification &mdash; builds anonymised context object, never passes raw patient record to Claude</td></tr>
+      <tr><td>Location generalisation</td><td>Specific city &rarr; region (e.g. "Adelaide" &rarr; "Australia")</td></tr>
+      <tr><td>Patient ID</td><td>Truncated UUID (first 8 chars only)</td></tr>
+    </table>
+    <p style="font-size: 12px; color: var(--text-dim); margin-top: 8px;">Principle: AI doesn't need identity for clinical reasoning. 100% medical quality preserved, 0% PII transmitted.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">2&#xFE0F;&#x20E3;</span> Layer 2: Microsoft Presidio</h3>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;"><strong>Files:</strong> <code>backend/src/presidio/anonymize.py</code>, <code>backend/src/presidio/presidio-client.js</code></p>
+    <table>
+      <tr><th>Component</th><th>Version</th><th>Purpose</th></tr>
+      <tr><td><code>presidio-analyzer</code></td><td>v2.2.354</td><td>NLP-based PII entity detection</td></tr>
+      <tr><td><code>presidio-anonymizer</code></td><td>v2.2.354</td><td>Entity replacement with typed placeholders</td></tr>
+      <tr><td><code>spaCy</code></td><td>v3.7.2</td><td>NLP model for Named Entity Recognition</td></tr>
+    </table>
+    <p style="font-size: 13px; color: var(--text-muted); margin-top: 12px;"><strong>Standard HIPAA entities:</strong> PERSON, EMAIL_ADDRESS, PHONE_NUMBER, LOCATION, DATE_TIME, IP_ADDRESS, URL, MEDICAL_LICENSE, US_SSN</p>
+    <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;"><strong>Custom Australian recognisers (5):</strong></p>
+    <table>
+      <tr><td><code>AU_MEDICARE</code></td><td>Medicare card numbers (10&ndash;11 digits, starts with 2&ndash;6)</td></tr>
+      <tr><td><code>AU_TFN</code></td><td>Tax File Numbers (8&ndash;9 digits with context matching)</td></tr>
+      <tr><td><code>AU_ABN</code></td><td>Australian Business Numbers (11 digits)</td></tr>
+      <tr><td><code>AU_HPI_I</code></td><td>Healthcare Provider Identifier &mdash; Individual (16 digits, starts 8003)</td></tr>
+      <tr><td><code>AU_PHONE</code></td><td>Australian phone numbers (+61, 04xx, area codes)</td></tr>
+    </table>
+    <p style="font-size: 12px; color: var(--text-dim); margin-top: 8px;">Architecture: Node.js client spawns Python subprocess. 3-second timeout, 1 retry, result caching (1hr TTL, max 1,000 entries). 95% latency reduction via cache. Graceful fallback: if Presidio is unavailable, text is redacted entirely (safe default).</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">3&#xFE0F;&#x20E3;</span> Layer 3: Audit Logger PII Masking</h3>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;"><strong>File:</strong> <code>backend/src/middleware/auditLogger.js</code></p>
+    <table>
+      <tr><td>Method</td><td>Regex-based pattern masking applied to all audit log entries before persistence</td></tr>
+      <tr><td>Patterns</td><td>Email addresses, phone numbers, Medicare numbers, names</td></tr>
+      <tr><td>Output</td><td>JSONL format to <code>/data/logs/audit/audit-YYYY-MM-DD.jsonl</code></td></tr>
+      <tr><td>Buffering</td><td>100-entry buffer with 30-second flush interval</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">4&#xFE0F;&#x20E3;</span> Layer 4: OTEL Span Sanitizer</h3>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;"><strong>File:</strong> <code>backend/src/observability/SanitizingSpanExporter.cjs</code></p>
+    <table>
+      <tr><td>Position</td><td>Terminal exporter stage &mdash; last thing before telemetry leaves the process</td></tr>
+      <tr><td>Method</td><td>Wraps OTLPTraceExporter, sanitises all span event attributes and status messages</td></tr>
+      <tr><td>Patterns</td><td>Email regex, phone (intl + AU mobile + AU landline), 10-digit fallback (Medicare/phone)</td></tr>
+      <tr><td>Truncation</td><td>All span text truncated to 500 chars with [TRUNCATED] marker</td></tr>
+      <tr><td>Replacement</td><td>Matched patterns replaced with <code>[REDACTED]</code></td></tr>
+    </table>
+    <p style="font-size: 12px; color: var(--text-dim); margin-top: 8px;">Also uses <code>safeSetAttributes()</code> allowlist at app level &mdash; only pre-approved attribute keys can be set on spans.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">5&#xFE0F;&#x20E3;</span> Layer 5: Encryption Log Sanitizer</h3>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;"><strong>File:</strong> <code>backend/src/encryption/ToggleableEncryption.js</code></p>
+    <table>
+      <tr><td>Purpose</td><td>Ensures encrypted values never appear in log output</td></tr>
+      <tr><td>Method</td><td>All sensitive values replaced with <code>[ENCRYPTED]</code> in log statements</td></tr>
+      <tr><td>Scope</td><td>AES-256-GCM encryption operations, key derivation, decryption results</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- AUDIT & HASHING -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="audit" class="section-title"><span class="icon">&#x26d3;</span> Audit Trail &amp; SHA-256 Chain Hashing</div>
+
+<div class="highlight-box">
+  Every clinical decision is recorded in an <strong>append-only, SHA-256 chain-hashed audit trail</strong> (blockchain-style). Each record cryptographically links to the previous via hash &mdash; <strong>tamper-evident by design</strong>. Database triggers enforce immutability at the PostgreSQL level.
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h3><span class="icon">&#x26d3;</span> Chain Hashing Architecture</h3>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;"><strong>File:</strong> <code>backend/src/services/weight-loss/ClinicalDecisionAuditService.js</code></p>
+    <table>
+      <tr><td>Algorithm</td><td><strong>SHA-256</strong> (Node.js <code>crypto</code> module)</td></tr>
+      <tr><td>Genesis hash</td><td><code>genesis:botaniqal:tga-cdss-audit:2026</code></td></tr>
+      <tr><td>Chain formula</td><td><code>SHA-256(prevHash + consultationId + patientId + eventType + timestamp)</code></td></tr>
+      <tr><td>Sequence</td><td>Auto-incrementing <code>sequence_number</code> for ordering</td></tr>
+      <tr><td>Verification</td><td><code>verifyChain(fromDate, toDate)</code> walks chain and validates each link</td></tr>
+      <tr><td>Immutability</td><td>PostgreSQL triggers prevent UPDATE/DELETE on <code>clinical_decision_audit</code> and <code>adverse_event_reports</code></td></tr>
+    </table>
+    <div class="code-block">
+      <span class="comment">// Chain hash computation</span><br>
+      <span class="keyword">const</span> payload = [<br>
+      &nbsp;&nbsp;prevHash, consultationId, patientId,<br>
+      &nbsp;&nbsp;eventType, createdAt<br>
+      ].<span class="func">join</span>(<span class="string">'|'</span>);<br><br>
+      <span class="keyword">const</span> chainHash = crypto<br>
+      &nbsp;&nbsp;.<span class="func">createHash</span>(<span class="string">'sha256'</span>)<br>
+      &nbsp;&nbsp;.<span class="func">update</span>(payload)<br>
+      &nbsp;&nbsp;.<span class="func">digest</span>(<span class="string">'hex'</span>);
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">&#x1f4be;</span> What Gets Audited</h3>
+    <table>
+      <tr><th>Event Type</th><th>Data Captured</th></tr>
+      <tr><td>AI clinical decisions</td><td>Input context, AI output, model version, confidence score</td></tr>
+      <tr><td>Safety validation results</td><td>Which tier triggered, what was flagged, pass/fail</td></tr>
+      <tr><td>Clinician overrides</td><td>What AI recommended vs what clinician chose + reason</td></tr>
+      <tr><td>Crisis detection</td><td>PHQ-9 scores, trigger text, escalation actions</td></tr>
+      <tr><td>Prescription approvals</td><td>Drug, dose, all 7 agent votes, consensus result</td></tr>
+      <tr><td>Adverse events</td><td>Severity, TGA deadline, reporting chain, version history</td></tr>
+      <tr><td>SOAP note generation</td><td>AI-generated note, quality rubric score, MediRecords sync status</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">&#x1f3e5;</span> TGA Adverse Event Reporting</h3>
+    <table>
+      <tr><th>Severity</th><th>TGA Deadline</th><th>Auto-Calculated</th></tr>
+      <tr><td style="color: var(--danger);">Death</td><td>48 hours</td><td><span class="badge badge-pass">YES</span></td></tr>
+      <tr><td style="color: var(--accent3);">Serious injury</td><td>240 hours (10 days)</td><td><span class="badge badge-pass">YES</span></td></tr>
+      <tr><td>Near-miss</td><td>720 hours (30 days)</td><td><span class="badge badge-pass">YES</span></td></tr>
+      <tr><td>Minor</td><td>No mandatory TGA reporting</td><td>&mdash;</td></tr>
+    </table>
+    <p style="font-size: 13px; color: var(--text-muted); margin-top: 12px;">Append-only versioning: adverse event status updates create NEW records with <code>previous_version_id</code> linkage. Original records are never modified. Quarterly TGA Section 12.3 reports generated automatically via <code>QuarterlyAuditReport.js</code>.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">&#x1f512;</span> Database-Level Immutability</h3>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;"><strong>File:</strong> <code>backend/src/migrations/002-audit-immutability-and-adverse-event-chain.sql</code></p>
+    <table>
+      <tr><td>Trigger 1</td><td><code>prevent_audit_modification</code> on <code>clinical_decision_audit</code> &mdash; blocks UPDATE and DELETE</td></tr>
+      <tr><td>Trigger 2</td><td><code>prevent_adverse_event_modification</code> on <code>adverse_event_reports</code> &mdash; blocks UPDATE and DELETE</td></tr>
+      <tr><td>Level</td><td>PostgreSQL BEFORE trigger &mdash; cannot be bypassed by application code</td></tr>
+      <tr><td>Error</td><td>Raises <code>SQLSTATE 'P0001'</code>: "Audit records are immutable"</td></tr>
+    </table>
+    <p style="font-size: 12px; color: var(--text-dim); margin-top: 8px;">Data retention: 7 years for medical records (AHPRA), 3 years administrative, 2 years auth logs, 90 days funnel analytics.</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- OBSERVABILITY -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="observability" class="section-title"><span class="icon">&#x1f50d;</span> Observability Stack — LGTM + OpenTelemetry</div>
+
+<div class="highlight-box">
+  Full <strong>LGTM stack</strong> (Loki, Grafana, Tempo, Mimir/Prometheus) with <strong>OpenTelemetry</strong> distributed tracing. 211 unique Prometheus metrics, 41 Grafana dashboards, 13 active alert rules. All telemetry is PHI-sanitised before export.
+</div>
+
+<div class="grid">
+  <div class="card full">
+    <h3><span class="icon">&#x1f4a1;</span> Observability Architecture</h3>
+    <div class="flow">
+      <span class="flow-node green">Application Code</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node blue">Prometheus (Metrics)</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node amber">Thanos (Long-term Storage)</span>
+    </div>
+    <div class="flow">
+      <span class="flow-node green">Application Code</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node blue">OTEL SDK + Sanitizer</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node blue">Tempo (Traces)</span>
+    </div>
+    <div class="flow">
+      <span class="flow-node green">Application Code</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node blue">Structured Logs</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node blue">Loki (Log Aggregation)</span>
+    </div>
+    <div class="flow">
+      <span class="flow-node blue">All Data Sources</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node amber">Grafana (Dashboards + Alerts)</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-node red">Alertmanager</span>
+    </div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h3><span class="icon">&#x1f4c8;</span> Prometheus Metrics (211 Unique)</h3>
+    <table>
+      <tr><td>HTTP &amp; API performance</td><td>3 metrics (duration, status codes, throughput)</td></tr>
+      <tr><td>Claude AI</td><td>4 metrics (calls, tokens in/out, cost, latency)</td></tr>
+      <tr><td>Gemini AI</td><td>3 metrics (calls, tokens, latency)</td></tr>
+      <tr><td>Safety validation</td><td>3 metrics (tier hits, pass/fail, latency)</td></tr>
+      <tr><td>Content safety + safety team</td><td>8 metrics (layer 1/2 checks, issues by type)</td></tr>
+      <tr><td>Consultation lifecycle</td><td>6 metrics (start, message, complete, duration)</td></tr>
+      <tr><td>Voice (STT/TTS)</td><td>19 metrics (latency, quality, errors)</td></tr>
+      <tr><td>Weight loss funnel</td><td>15 metrics (step conversions, drop-offs)</td></tr>
+      <tr><td>MediRecords integration</td><td>3 metrics (sync status, latency, errors)</td></tr>
+      <tr><td>Web vitals (LCP/FCP/INP/CLS)</td><td>5 metrics (real user monitoring)</td></tr>
+      <tr><td>Document generation</td><td>8 metrics (PDF/SOAP generation time, success)</td></tr>
+      <tr><td>Supabase operations</td><td>11 metrics (query time, RLS hits, errors)</td></tr>
+      <tr><td>Infrastructure</td><td>27+ metrics (cache, rate limiting, auth, background jobs)</td></tr>
+    </table>
+    <p style="font-size: 13px; color: var(--text-muted); margin-top: 12px;"><strong>File:</strong> <code>backend/src/metrics/prometheusMetrics.js</code> &mdash; All metrics use <code>prom-client</code> library. Exposed on <code>/metrics</code> endpoint, scraped by Prometheus every 15 seconds.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">&#x1f4e1;</span> OpenTelemetry Distributed Tracing</h3>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;"><strong>Files:</strong> <code>backend/src/observability/otel-instrumentation.js</code>, <code>backend/src/observability/instrumentation.cjs</code></p>
+    <table>
+      <tr><td>SDK</td><td><code>@opentelemetry/sdk-node</code> + auto-instrumentation</td></tr>
+      <tr><td>Protocol</td><td>OTLP (HTTP) to Tempo collector</td></tr>
+      <tr><td>AI spans</td><td><code>gen_ai.*</code> semantic convention &mdash; streaming-aware (span open until iterator completes)</td></tr>
+      <tr><td>Instrumented</td><td>Claude API, Gemini API, Mem0 embeddings, HTTP, Express routes</td></tr>
+      <tr><td>PHI protection</td><td><code>SanitizingSpanExporter</code> at terminal pipeline + <code>safeSetAttributes()</code> allowlist</td></tr>
+      <tr><td>Correlation</td><td>Trace ID propagated through consultation lifecycle for end-to-end visibility</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">&#x1f4ca;</span> Grafana Dashboards (41 Total)</h3>
+    <table>
+      <tr><th>Category</th><th>Dashboards</th></tr>
+      <tr><td style="color: var(--accent);">Application (16)</td><td>Executive Overview, Claude AI, Safety &amp; Compliance, System Health, Frontend, Voice, Media, Database, Errors, Token Budget, Consultation Lifecycle, MediRecords, Weight Loss Flow, Audit, LLM Performance, Funnel</td></tr>
+      <tr><td style="color: var(--accent2);">Infrastructure (25)</td><td>Node health, pod metrics, network, storage, ingress, DNS, certificate expiry, etc.</td></tr>
+    </table>
+    <p style="font-size: 13px; color: var(--text-muted); margin-top: 12px;">6 datasources: Prometheus, Loki (x2), Tempo (x2), Alertmanager. Live at <code>api.drsophia.link/grafana</code>.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">&#x1f514;</span> Alert Rules (13 Active)</h3>
+    <table>
+      <tr><th>Priority</th><th>Alert</th></tr>
+      <tr><td style="color: var(--danger);">P1 Critical</td><td>Safety blocking prescriptions, backend service down</td></tr>
+      <tr><td style="color: var(--accent3);">P2 High</td><td>Consultation latency &gt;15s, high error rate &gt;5%, Claude API errors spike, MediRecords sync failures</td></tr>
+      <tr><td>P3 Medium</td><td>Claude API cost &gt;$5/hr, API latency &gt;5s, no consultations in 4hrs</td></tr>
+      <tr><td style="color: var(--accent2);">Weight Loss</td><td>Funnel collapse, payment failure &gt;20%, zero funnel activity, signup failure &gt;30%</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- LIBRARIES & TOOLS -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="libraries" class="section-title"><span class="icon">&#x1f4e6;</span> Key Libraries &amp; Tools</div>
+
+<div class="grid">
+  <div class="card">
+    <h3><span class="icon">&#x1f6e1;</span> Safety &amp; Anonymisation</h3>
+    <table>
+      <tr><th>Library</th><th>Version</th><th>Purpose</th></tr>
+      <tr><td><code>presidio-analyzer</code> (Python)</td><td>v2.2.354</td><td>Microsoft NLP-based PII/PHI entity detection</td></tr>
+      <tr><td><code>presidio-anonymizer</code> (Python)</td><td>v2.2.354</td><td>Entity replacement with typed placeholders</td></tr>
+      <tr><td><code>spaCy</code> (Python)</td><td>v3.7.2</td><td>NLP model backend for Named Entity Recognition</td></tr>
+      <tr><td><code>@anthropic-ai/sdk</code></td><td>latest</td><td>Claude Haiku 4.5 for Tier 2 safety validation</td></tr>
+      <tr><td><code>node-cache</code></td><td>latest</td><td>In-memory caching for safety lookups (15-min TTL)</td></tr>
+      <tr><td><code>DOMPurify</code> / <code>htmlSanitizer</code></td><td>latest</td><td>HTML/XSS sanitisation for user input</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">&#x1f512;</span> Encryption &amp; Security</h3>
+    <table>
+      <tr><th>Library</th><th>Purpose</th></tr>
+      <tr><td><code>crypto</code> (Node.js built-in)</td><td>AES-256-GCM encryption, SHA-256 hashing, PBKDF2 key derivation</td></tr>
+      <tr><td><code>@supabase/supabase-js</code></td><td>Row-Level Security enforcement, JWT validation</td></tr>
+      <tr><td>AWS Secrets Manager</td><td>Runtime secret injection (zero hardcoded credentials)</td></tr>
+      <tr><td>ACM (AWS Certificate Manager)</td><td>TLS 1.3 certificate management, auto-renewal</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">&#x1f4c8;</span> Observability</h3>
+    <table>
+      <tr><th>Tool</th><th>Purpose</th></tr>
+      <tr><td><code>prom-client</code></td><td>Prometheus metrics collection (counters, histograms, gauges)</td></tr>
+      <tr><td><code>@opentelemetry/sdk-node</code></td><td>OpenTelemetry distributed tracing SDK</td></tr>
+      <tr><td><code>@opentelemetry/auto-instrumentations-node</code></td><td>Automatic HTTP/Express/DNS instrumentation</td></tr>
+      <tr><td><code>@opentelemetry/exporter-trace-otlp-http</code></td><td>OTLP trace export to Tempo</td></tr>
+      <tr><td>Prometheus</td><td>Time-series metrics database (15s scrape interval)</td></tr>
+      <tr><td>Thanos</td><td>Long-term metric storage, cross-cluster querying, S3-backed</td></tr>
+      <tr><td>Grafana v12.3</td><td>Dashboarding, alerting, data exploration</td></tr>
+      <tr><td>Loki</td><td>Log aggregation (S3-backed, 90-day retention)</td></tr>
+      <tr><td>Tempo</td><td>Distributed trace storage (S3-backed)</td></tr>
+      <tr><td>Alertmanager</td><td>Alert routing, deduplication, notification</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">&#x1f916;</span> AI &amp; Clinical</h3>
+    <table>
+      <tr><th>Tool</th><th>Purpose</th></tr>
+      <tr><td>Claude Opus 4.6 / Sonnet 4.5 / Haiku 4.5</td><td>Primary AI models (consultation, safety, classification)</td></tr>
+      <tr><td>Gemini 3 Flash</td><td>Vision (ID verification, body assessment), Byzantine consensus</td></tr>
+      <tr><td>GPT-5.2</td><td>Byzantine consensus agent diversity</td></tr>
+      <tr><td>Perplexity Sonar Pro</td><td>Real-time evidence search + Byzantine consensus</td></tr>
+      <tr><td>ElevenLabs v3</td><td>Text-to-speech (Australian female accent)</td></tr>
+      <tr><td>OpenAI Whisper</td><td>Speech-to-text with medical hallucination detection</td></tr>
+      <tr><td>MediRecords FHIR R4 + REST</td><td>Australian EHR integration (bidirectional)</td></tr>
+      <tr><td>Terra SDK</td><td>Wearable device integration (Samsung, Fitbit, Garmin, Apple)</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">&#x2601;&#xFE0F;</span> Infrastructure</h3>
+    <table>
+      <tr><th>Tool</th><th>Purpose</th></tr>
+      <tr><td>AWS EKS (K8s 1.32)</td><td>Container orchestration (ap-southeast-2, Sydney)</td></tr>
+      <tr><td>AWS ECR</td><td>Private container registry</td></tr>
+      <tr><td>AWS ALB</td><td>Application load balancer with WAF</td></tr>
+      <tr><td>AWS Route53</td><td>DNS management</td></tr>
+      <tr><td>AWS S3</td><td>Object storage (logs, traces, documents)</td></tr>
+      <tr><td>Supabase (PostgreSQL)</td><td>Primary database with RLS</td></tr>
+      <tr><td>GitHub Actions</td><td>CI/CD (separate DEV/PROD pipelines)</td></tr>
+      <tr><td>Karpenter</td><td>Node-level auto-scaling for cost efficiency</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="footer">
+  <p>&copy; 2026 Botaniqal Pty Ltd &mdash; Confidential &mdash; Prepared for WA Health Engagement</p>
+  <p style="margin-top: 8px;">Generated March 20, 2026 &mdash; Data sourced from live production codebase</p>
+</div>
+</div>
+
+<script>
+function checkPass() {
+  var input = document.getElementById('passInput').value;
+  if (input === 'botaniqal2026' || input === 'Botaniqal2026!' || input === 'DrSophia2026!@#$') {
+    document.getElementById('lockScreen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    sessionStorage.setItem('tech_auth', '1');
+  } else {
+    document.getElementById('passError').style.display = 'block';
+    document.getElementById('passInput').value = '';
+    document.getElementById('passInput').focus();
+    setTimeout(function() { document.getElementById('passError').style.display = 'none'; }, 3000);
+  }
+}
+if (sessionStorage.getItem('tech_auth') === '1') {
+  document.getElementById('lockScreen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+}
+document.getElementById('passInput').focus();
+</script>
+</body>
+</html>
